@@ -58,6 +58,7 @@ Truth table of A XOR B
 `JUMPDEST` is at address 0A (10), so the result of our XOR operation has to be 10.
 `CODESIZE` is `0x0B + 1 = 0x0C => 12 => 0b1100`, our task is to submit the correct calldata so that `12 XOR CALLVALUE` returns 10, which is `0b0110 => 6`.
 
-| CODESIZE | 1 | 1 | 0 | 0 |
-| CALLVALUE | 0 | 1 | 1 | 0 |
-| XOR | 1 | 0 | 1 | 0 |
+| CODESIZE  | 1   | 1   | 0   | 0   |
+| --------- | --- | --- | --- | --- |
+| CALLVALUE | 0   | 1   | 1   | 0   |
+| XOR       | 1   | 0   | 1   | 0   |
