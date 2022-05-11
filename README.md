@@ -18,6 +18,10 @@ You can use [`evm.codes`](https://www.evm.codes/)'s reference and playground to 
 
 ## Solutions
 
+Following are the solutions for each puzzle. But first, a high level overview how this actually works:
+
+For each new puzzle, the play.js script is creating a smart contract with the code of the puzzle, e.g. for puzzle #1 a smart contract with code `0x3456FDFDFDFDFDFD5B00` is being created. If you enter a solution, a transaction with your calldata/callvalue is being sent to that generted smart contract. If the tx is successfull, you passed, if the tx reverts, you failed.
+
 ### Puzzle #1
 
 First opcode is `CALLVALUE`, which moves the msg value on top of the stack.
@@ -62,3 +66,42 @@ Truth table of A XOR B
 | --------- | --- | --- | --- | --- |
 | CALLVALUE | 0   | 1   | 1   | 0   |
 | XOR       | 1   | 0   | 1   | 0   |
+
+### Puzzle #5
+
+This puzzle puts the callvalue on the stack, duplicates it and multiplicates it by itself. After that it pushes the value `0x0100 = 256` to the stack and checks if the result of the multiplication before is equal.
+
+So the puzzle basically squares the callvalue and checks if the result is equal to 256. If yes, it jumps to the desired jumpdestination, if not it reverts.
+
+The `JUMPI` opcode is used to implement conditions, it takes two values from the stack, the first (topmost) value is the jump destination, the second value is the conditional value: If its different from 0, it jumps to `JUMPDEST`, if not it will simply continue.
+
+The solution is the square root of 256, which is 16.
+
+[EVM Playground](https://www.evm.codes/playground?callValue=100&unit=Wei&codeType=Mnemonic&code='CALLVALUE~DUP1~MULy2%200x0100~EQy1%200x0CwIzzwDEST~STOPzz'~%5Cnz~REVERTy~PUSHw~JUMP%01wyz~_)
+
+### Puzzle #6
+
+This puzzle takes the calldata via `CALLDATALOAD` and pads it to 32 bytes, the result is being used as `JUMPDEST`.
+
+To solve this puzzle we have to send the jump destination 0x0A padded to 32 bytes:
+`0x000000000000000000000000000000000000000000000000000000000000000A`
+
+[EVM Playground](https://www.evm.codes/playground?callValue=100&unit=Wei&callData=0x000000000000000000000000000000000000000000000000000000000000000a&codeType=Mnemonic&code='PUSH1%200x00zCALLDATALOADy~~~~~~yDESTzSTOP'~zREVERTz%5CnyzJUMP%01yz~_)
+
+### Puzzle #7
+
+This puzzle is one of the most difficult so far.
+
+`CALLDATACOPY` saves the calldata to the memory. It takes three input arguments: The memory offset, the calldata offset, and the length to copy. In our puzzle `CALLDATACOPY` copies the entire calldata to memory, so the memory and calldata content is now identical.
+
+It continues with the same three opcodes, but then executes `CREATE`. What this opcode does is creating a new contract, with the calldata as creation bytecode.
+
+`CREATE` returns the address of the new contract, which is consumed by `EXTCODESIZE`. The following opcodes basically check if the bytecode size of the newly created contract is equal to one, if yes, jump to the jump destination.
+
+To achieve this, we have to submit a creation bytecode which just returns a single byte as calldata
+
+`0x60016000F3` -> push a single byte to memory and return it via `RETURN`.
+
+For more info on creation vs runtime bytecode, check out [this](https://ventral.digital/posts/2022/3/12/evm-puzzles-second-wind) link or [this](https://blog.openzeppelin.com/deconstructing-a-solidity-contract-part-ii-creation-vs-runtime-6b9d60ecb44c/).
+
+[EVM Playground](https://www.evm.codes/playground?callValue=100&unit=Wei&callData=0x60026000F3&codeType=Mnemonic&code='yw0zDUP1zyCOPYzyw0~00zCREATEzEXTCODEw1zEQ~13vIzREVERTvDESTzSTOP'~zPUSH1%200xz%5CnyCALLDATAwSIZE~0vzJUMP%01vwyz~_)
